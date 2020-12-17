@@ -15,6 +15,10 @@ def neural_network(training_data: list, number_of_observations: int):
     model.add(Dense(units=32, activation=relu))
     model.add(Dense(units=64, activation=relu))
     model.add(Dense(units=128, activation=relu))
+    model.add(Dense(units=256, activation=relu))
+    model.add(Dense(units=512, activation=relu))
+    model.add(Dense(units=256, activation=relu))
+    model.add(Dense(units=128, activation=relu))
     model.add(Dense(units=64, activation=relu))
     model.add(Dense(units=32, activation=relu))
     model.add(Dropout(rate=.5))
@@ -28,6 +32,6 @@ def neural_network(training_data: list, number_of_observations: int):
         X, y,
         batch_size=32,
         epochs=1000,
-        verbose=1)
+        verbose=0)
 
     return model

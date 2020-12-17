@@ -1,6 +1,6 @@
 import random
 from numpy import array, save, argmax
-from config_reader import games, attemps
+from config_reader import games, attemps, elitism_factor
 from statistics import median
 
 
@@ -49,8 +49,8 @@ def train_population(env, render=False, model=None, number_of_observations=None)
       [all_scores.append(score[1]) for score in all_games]
 
       sorted_scores = sorted(all_scores, reverse=True)
-      elitism_factor = int(len(all_scores) * .2)
-      score_requirements = sorted_scores[elitism_factor]
+      elitism_num = int(len(all_scores) * elitism_factor)
+      score_requirements = sorted_scores[elitism_num]
 
       for game in all_games:
             score = game[1]
