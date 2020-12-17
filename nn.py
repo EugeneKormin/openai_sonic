@@ -28,6 +28,7 @@ def neural_network(training_data: list, number_of_observations: int):
         optimizer=Adam(lr=LR),
         loss="categorical_crossentropy")
 
+    print("looking for better tactics")
     model.fit(
         X, y,
         batch_size=32,

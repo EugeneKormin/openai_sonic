@@ -9,6 +9,7 @@ def train_population(env, render=False, model=None, number_of_observations=None)
       all_games = []
       all_scores = []
       accepted_scores = []
+      print("playing games...")
       for game_num in range(games):
             env.reset()
             score = 0
@@ -42,8 +43,6 @@ def train_population(env, render=False, model=None, number_of_observations=None)
                   if render:
                         env.reset()
 
-
-            print("game: {}/{}".format(game_num, score))
             all_games.extend([[previous_memory, score]])
 
       [all_scores.append(score[1]) for score in all_games]

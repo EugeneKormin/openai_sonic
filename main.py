@@ -30,7 +30,7 @@ if __name__ == '__main__':
                   number_of_observations=number_of_observations)
 
             median_scores_list.append(median_scores)
-            print("generation: {}/{}".format(generation, median_scores))
+            print("generation: {}/score: {}".format(generation, median_scores))
 
             df = DataFrame({
                   "score": median_scores_list
