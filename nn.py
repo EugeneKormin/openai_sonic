@@ -3,7 +3,7 @@ from numpy import asarray, float32
 from hyperopt.hp import choice, uniform
 from hyperopt import Trials, tpe, fmin, STATUS_OK
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, accuracy_score
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam, Adadelta, RMSprop
@@ -75,14 +75,15 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
 
         model.compile(
             optimizer=nn_space["optimizer"](lr=lr),
-            loss="categorical_crossentropy"
+            loss="categorical_crossentropy",
+            metrics=["acc"]
         )
 
         model.fit(
             X_train, y_train,
             batch_size=32,
             epochs=nn_space["epochs"],
-            verbose=2,
+            verbose=0,
             callbacks=[callback],
             validation_data=(X_val, y_val)
         )
@@ -91,22 +92,32 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         y_pred = argmax(y_pred, axis=1)
         y_val = argmax(y_val, axis=1)
         error = f1_score(y_true=y_val, y_pred=y_pred)
+        accuracy = accuracy_score(y_true=y_val, y_pred=y_pred)
 
         return {
             "type": "regression",
             "loss": error,
+            "accuracy": accuracy,
             'model': model,
             "status": STATUS_OK
         }
 
     def hyperopt_early_stop(trial: Trials):
-        error = trial.trials[0]["result"]["loss"]
-        if error <= threshold:
-            print("error is {}. Threshold is {}. Keep looking for a better result".format(error, threshold))
-            return trial, True
+        done = False
+        is_accurate = False
+
+        for step, trial in enumerate(trial.trials):
+            if trial["result"]["loss"] <= threshold:
+                done = True
+            if trial["result"]["accuracy"] > .85:
+                is_accurate = True
+
+        if done and is_accurate:
+            stop = True
         else:
-            print("error is {}. Threshold is {}. Job is done".format(error, threshold))
-            return trial, False
+            stop = False
+
+        return stop, trial
 
     trials = Trials()
     fmin(

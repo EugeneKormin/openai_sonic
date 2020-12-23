@@ -38,15 +38,13 @@ def train_population(env, model=None):
                   if done:
                         break
 
+            print("score: {}".format(score))
             all_steps_list.append(len(previous_memory))
             all_games.extend([[previous_memory, score]])
-
-      '''      
-      median_attemps_in_game = median(data=all_steps_list)
-      attemps_to_take_into_consideration = median_attemps_in_game * top_games
-      '''
-
       top_games = int(games * .05)
+
+      median_attemps_in_game = median(data=all_steps_list)
+
       [all_scores.append(score[1]) for score in all_games]
       min_requires_score = sorted(all_scores, reverse=True)[top_games]
 
