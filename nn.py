@@ -2,6 +2,7 @@ from numpy import array, argmax
 from numpy import asarray, float32
 from hyperopt.hp import choice, uniform
 from hyperopt import Trials, tpe, fmin, STATUS_OK
+from hyperopt.early_stop import no_progress_loss
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, accuracy_score
 from tensorflow.keras import Sequential
@@ -10,6 +11,7 @@ from tensorflow.keras.optimizers import Adam, Adadelta, RMSprop
 from tensorflow.keras.activations import relu, elu, selu, softmax
 from tensorflow.keras.callbacks import EarlyStopping
 from config_reader import min_epochs, max_epochs, max_evals, threshold
+
 
 
 def neural_network(training_data: list, number_of_observations: int, number_of_actions: int):
@@ -102,7 +104,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
             "status": STATUS_OK
         }
 
-    def hyperopt_early_stop(trial: Trials):
+    def hyperopt_early_stop(trial: Trials, early_stop_args):
         done = False
         is_accurate = False
 
@@ -117,7 +119,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         else:
             stop = False
 
-        return stop, trial
+        return stop
 
     trials = Trials()
     fmin(
@@ -126,7 +128,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         space=nn_space,
         algo=tpe.suggest,
         max_evals=max_evals,
-        early_stop_fn=hyperopt_early_stop
+        early_stop_fn=no_progress_loss
     )
 
     best_trial_score = trials.best_trial["result"]["loss"]
