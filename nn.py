@@ -1,22 +1,20 @@
-from numpy import array, argmax
+from numpy import array
 from numpy import asarray, float32
 from hyperopt.hp import choice, uniform
 from hyperopt import Trials, tpe, fmin, STATUS_OK
-from hyperopt.early_stop import no_progress_loss
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score, accuracy_score
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.optimizers import Adam, Adadelta, RMSprop
 from tensorflow.keras.activations import relu, elu, selu, softmax
 from tensorflow.keras.callbacks import EarlyStopping
-from config_reader import min_epochs, max_epochs, max_evals, threshold
-
+from config_reader import min_epochs, max_epochs, max_evals
+from numpy import median
 
 
 def neural_network(training_data: list, number_of_observations: int, number_of_actions: int):
     X = array([i[0] for i in training_data]).reshape(-1, number_of_observations)
-    y = array([i[1] for i in training_data])
+    y = array([i[1] for i in training_data]).reshape(-1, number_of_actions)
 
     nn_space = {
         "units1": choice("units1", range(3, 9)),
@@ -53,7 +51,6 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
 
     def model_creation(nn_space):
         model = Sequential()
-        print("layers: {}".format(nn_space["layer_num"]))
         for layer_num in range(nn_space["layer_num"]):
             units_name = "units" + str(layer_num + 1)
             activation_name = "activation" + str(layer_num + 1)
@@ -61,6 +58,18 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         model.add(Dropout(rate=nn_space["dropout"]))
         model.add(Dense(number_of_actions, activation=nn_space["activation_output"]))
         return model
+
+    def early_stop_fn(*args):
+        stopped = False
+
+        loss = args[0].best_trial["result"]["loss"]
+
+        if loss <= .125:
+            print("accuracy: {}".format(1 / loss))
+            stopped = True
+        else:
+            pass
+        return stopped
 
     def nn_model(nn_space):
         lr = 1 / 2 ** nn_space["lr"]
@@ -77,8 +86,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
 
         model.compile(
             optimizer=nn_space["optimizer"](lr=lr),
-            loss="categorical_crossentropy",
-            metrics=["acc"]
+            loss="categorical_crossentropy"
         )
 
         model.fit(
@@ -91,35 +99,23 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         )
 
         y_pred = model.predict(X_val)
-        y_pred = argmax(y_pred, axis=1)
-        y_val = argmax(y_val, axis=1)
-        error = f1_score(y_true=y_val, y_pred=y_pred)
-        accuracy = accuracy_score(y_true=y_val, y_pred=y_pred)
+        error = 0
+        for num, _ in enumerate(y_val):
+            check_action = abs(y_pred[num][0] - y_val[num][0])
+            if check_action < .5:
+                pass
+            else:
+                error += 1
+
+        error = error / len(y_val)
+        print(error)
 
         return {
             "type": "regression",
             "loss": error,
-            "accuracy": accuracy,
             'model': model,
             "status": STATUS_OK
         }
-
-    def hyperopt_early_stop(trial: Trials, early_stop_args):
-        done = False
-        is_accurate = False
-
-        for step, trial in enumerate(trial.trials):
-            if trial["result"]["loss"] <= threshold:
-                done = True
-            if trial["result"]["accuracy"] > .85:
-                is_accurate = True
-
-        if done and is_accurate:
-            stop = True
-        else:
-            stop = False
-
-        return stop
 
     trials = Trials()
     fmin(
@@ -128,7 +124,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         space=nn_space,
         algo=tpe.suggest,
         max_evals=max_evals,
-        early_stop_fn=no_progress_loss
+        early_stop_fn=early_stop_fn
     )
 
     best_trial_score = trials.best_trial["result"]["loss"]
@@ -136,4 +132,5 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         current_score_scaled = trial["result"]["loss"]
         if best_trial_score == current_score_scaled:
             best_model = trial["result"]["model"]
+            print(best_trial_score)
             return best_model

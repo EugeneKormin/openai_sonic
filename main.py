@@ -3,7 +3,7 @@ from gym import make
 from config_reader import env_name, generations
 from pandas import DataFrame
 from nn import neural_network
-from statistics import median
+
 
 env = make(env_name)
 median_scores_list = []
