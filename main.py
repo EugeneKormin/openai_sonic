@@ -17,7 +17,7 @@ if __name__ == '__main__':
       model = neural_network(
             training_data=training_data,
             number_of_observations=number_of_observations,
-            number_of_actions=env.action_space.n
+            number_of_actions=4
       )
       median_best_score_list.append(median_accepted_scores)
       median_scores_list.append(median_score)

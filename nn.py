@@ -9,11 +9,19 @@ from tensorflow.keras.optimizers import Adam, Adadelta, RMSprop
 from tensorflow.keras.activations import relu, elu, selu, softmax
 from tensorflow.keras.callbacks import EarlyStopping
 from config_reader import min_epochs, max_epochs, max_evals
-from numpy import median
 
 
 def neural_network(training_data: list, number_of_observations: int, number_of_actions: int):
-    X = array([i[0] for i in training_data]).reshape(-1, number_of_observations)
+    X_list = []
+    X_list_of_lists = []
+    for observation in training_data:
+        for i in observation[0]:
+            if i == .0:
+                i = .01
+            X_list.append(i)
+        X_list_of_lists.append(X_list)
+    X = array(X_list_of_lists).reshape(-1, number_of_observations)
+
     y = array([i[1] for i in training_data]).reshape(-1, number_of_actions)
 
     nn_space = {
@@ -56,7 +64,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
             activation_name = "activation" + str(layer_num + 1)
             model.add(Dense(units=2**nn_space[units_name], activation=nn_space[activation_name]))
         model.add(Dropout(rate=nn_space["dropout"]))
-        model.add(Dense(number_of_actions, activation=nn_space["activation_output"]))
+        model.add(Dense(4, activation="linear"))
         return model
 
     def early_stop_fn(*args):
@@ -65,7 +73,7 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         loss = args[0].best_trial["result"]["loss"]
 
         if loss <= .125:
-            print("accuracy: {}".format(1 / loss))
+            print("accuracy has been reached: {}".format(1 / loss))
             stopped = True
         else:
             pass
@@ -86,7 +94,8 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
 
         model.compile(
             optimizer=nn_space["optimizer"](lr=lr),
-            loss="categorical_crossentropy"
+            loss="categorical_crossentropy",
+            metrics=['accuracy']
         )
 
         model.fit(
@@ -99,20 +108,26 @@ def neural_network(training_data: list, number_of_observations: int, number_of_a
         )
 
         y_pred = model.predict(X_val)
-        error = 0
+        loss = 0
         for num, _ in enumerate(y_val):
             check_action = abs(y_pred[num][0] - y_val[num][0])
             if check_action < .5:
-                pass
+                _max = max(y_pred[num][0],  y_pred[num][1])
+                _min = min(y_pred[num][0],  y_pred[num][1])
+                res = (_max - _min) * 10 ** 1
+                loss += res
+                print("correct", res)
             else:
-                error += 1
-
-        error = error / len(y_val)
-        print(error)
+                _max = max(y_pred[num][0], y_pred[num][1])
+                _min = min(y_pred[num][0], y_pred[num][1])
+                res = (_max - _min) * 10 ** 3
+                loss += res
+                print("incorrect", res)
+            print("***")
 
         return {
             "type": "regression",
-            "loss": error,
+            "loss": loss,
             'model': model,
             "status": STATUS_OK
         }
